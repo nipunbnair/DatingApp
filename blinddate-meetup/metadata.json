@@ -1,0 +1,5 @@
+{
+  "name": "BlindDate Meetup",
+  "description": "A location-based blind dating app that clusters users by budget and location, scheduling group meetups at local cafes based on calendar availability.",
+  "requestFramePermissions": ["geolocation"]
+}

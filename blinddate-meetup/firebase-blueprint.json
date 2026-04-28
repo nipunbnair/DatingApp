@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user dating preferences and profile details.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "sex": { "type": "string", "enum": ["male", "female", "other"] },
+        "preference": { "type": "string", "enum": ["male", "female", "everyone"] },
+        "eatingPreferences": { "type": "string" },
+        "travelingMeans": { "type": "string", "enum": ["car", "public transport"] },
+        "budget": { "type": "number" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" }
+          }
+        },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "sex", "preference", "budget", "location"]
+    },
+    "Meetup": {
+      "title": "Meetup Group",
+      "description": "A scheduled group meetup at a specific venue.",
+      "type": "object",
+      "properties": {
+        "venueName": { "type": "string" },
+        "venueAddress": { "type": "string" },
+        "scheduledTime": { "type": "string", "format": "date-time" },
+        "participantIds": { "type": "array", "items": { "type": "string" } },
+        "budgetTier": { "type": "number" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" }
+          }
+        }
+      },
+      "required": ["venueName", "scheduledTime", "participantIds"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Collection of user profiles."
+    },
+    "meetups": {
+      "schema": { "$ref": "#/entities/Meetup" },
+      "description": "Collection of scheduled meetups."
+    }
+  }
+}

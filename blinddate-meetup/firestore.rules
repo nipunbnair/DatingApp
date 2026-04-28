@@ -1,0 +1,96 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: {uid}
+// Fields:
+//   - uid: string (required) - User's unique identifier
+//   - name: string (required) - User's full name
+//   - sex: string (required) - male, female, other
+//   - preference: string (required) - male, female, everyone
+//   - eatingPreferences: string (optional) - User's dietary restrictions
+//   - travelingMeans: string (required) - car, public transport
+//   - budget: number (required) - Financial budget for a date
+//   - location: map (required) - { latitude: number, longitude: number }
+//   - lastUpdated: timestamp (optional) - Last profile update
+//
+// Collection: meetups
+// Document ID: {meetupId}
+// Fields:
+//   - venueName: string (required) - Name of the restaurant/cafe
+//   - venueAddress: string (optional) - Address of the venue
+//   - scheduledTime: timestamp (required) - When the meetup happens
+//   - participantIds: list (required) - List of user UIDs in the group
+//   - budgetTier: number (optional) - The budget level for this meetup
+//   - location: map (optional) - { latitude: number, longitude: number }
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isParticipant(meetupData) {
+      return isAuthenticated() && request.auth.uid in meetupData.participantIds;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'name', 'sex', 'preference', 'budget', 'location']) &&
+             data.uid is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.sex in ['male', 'female', 'other'] &&
+             data.preference in ['male', 'female', 'everyone'] &&
+             data.budget is number && data.budget >= 0 &&
+             data.location is map &&
+             data.location.latitude is number &&
+             data.location.longitude is number;
+    }
+
+    function isValidMeetup(data) {
+      return data.keys().hasAll(['venueName', 'scheduledTime', 'participantIds']) &&
+             data.venueName is string && data.venueName.size() > 0 &&
+             data.scheduledTime is timestamp &&
+             data.participantIds is list && data.participantIds.size() > 0;
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // Users can read their own profile, or other profiles if they are part of the same meetup (simplified for now)
+      allow read: if isAuthenticated(); 
+      
+      // Users can only create/update their own profile
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+      allow delete: if isOwner(userId);
+    }
+
+    match /meetups/{meetupId} {
+      // Only participants can read meetup details
+      allow read: if isParticipant(resource.data);
+      
+      // For this prototype, we'll allow authenticated users to create meetups (the matching logic)
+      // In a production app, this would be restricted to a server-side admin role.
+      allow create: if isAuthenticated() && isValidMeetup(request.resource.data);
+      
+      // Updates and deletes are restricted
+      allow update: if false; 
+      allow delete: if false;
+    }
+  }
+}
